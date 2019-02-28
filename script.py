@@ -57,8 +57,4 @@ def get_marks_of(rollNo, semester):
         return ('<Not Found>')
 
 for roll in roll_tuple:
-    rcvData = get_marks_of(roll, sem)
-    if type(rcvData) is tuple:
-        name, sgpa = rcvData
-        if float(sgpa) > 9.00:
-            print(name)
+    print(get_marks_of(roll, sem))
