@@ -108,7 +108,10 @@ if verbose == 1:
     # Disply most recent
     for roll in roll_tuple:
         data = get_marks_of(roll, sem)
-        print(f"({data['name']}, {data['sgpa_odd' if sem%2!=0 else 'sgpa_even']})")
+        try:
+            print(f"({data['name']}, {data['sgpa_odd' if sem%2!=0 else 'sgpa_even']})")
+        except:
+            pass
 elif verbose == 2:
     for roll in roll_tuple:
         print_marks_properly(roll, sem)
