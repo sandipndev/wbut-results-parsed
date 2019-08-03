@@ -1,0 +1,10 @@
+import sqlite3
+db = sqlite3.connect(":memory:")
+curr = db.cursor()
+res = curr.execute("CREATE TABLE \"lol\" (\"m\" NUMBER PRIMARY KEY, \"dat\" NUMBER)")
+print(res)
+res = curr.execute("INSERT INTO \"lol\"(m, dat) VALUES (1, 2)")
+print(list(res))
+res = curr.execute("SELECT m FROM \"lol\"")
+print(list(res))
+db.close()
