@@ -256,6 +256,9 @@ for stream_name , stream_num in streams:
                     if data['ygpa'] is not None:
                         curr.execute(f'''UPDATE gpa_data SET ygpa_{sm_no // 2} = ? WHERE roll = ?''', (data['ygpa'], data['roll']))
                     
+                    if data['cgpa'] is not None:
+                        curr.execute(f'''UPDATE gpa_data SET cgpa = ? WHERE roll = ?''', (data['cgpa'], data['roll']))
+                    
                     change_count += 1
 
                 
