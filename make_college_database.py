@@ -6,7 +6,7 @@ import sqlite3
 from tqdm import tqdm
 from datetime import datetime
 from itertools import product
-from time import sleep
+from time import sleep, time
 
 # Getting the Websites
 result_url = 'https://makaut.ucanapply.com/smartexam/public/result-details'
@@ -45,12 +45,10 @@ def get_marks_of(rollNo, semester):
         # This result has not yet been published
         return
 
-    fill = lambda x: x[0] if len(x) == 1 else "<Not Found>"
-
     # Basic Data
-    name = fill(re.findall("Name[^a-zA-Z]*([a-zA-Z ]+)", result_data))
-    stream = fill(re.findall("B.Tech[^A-Z]*([A-Z]+)", result_data))
-    roll_num = fill(re.findall("Roll[^0-9]*([0-9]+)", result_data))
+    name = re.findall("Name[^a-zA-Z]*([a-zA-Z ]+)", result_data)[0]
+    stream = re.findall("B.Tech[^A-Z]*([A-Z]+)", result_data)[0]
+    roll_num = re.findall("Roll[^0-9]*([0-9]+)", result_data)[0]
     reg_num, batch = re.findall("Registration[^0-9]*([0-9]+) OF ([0-9-]+)", result_data)[0]
 
     # Subject Data
@@ -62,13 +60,14 @@ def get_marks_of(rollNo, semester):
     subject_data = get_subject_data(result_data)
 
     # SGPA YGPA MAR - Prone to errors for odd and even sem
-    sgpa_odd, odd_year, sgpa_even, even_year, ygpa = -1, -1, -1, -1, -1
+    sgpa_odd, odd_year, sgpa_even, even_year, ygpa, cgpa = -1, -1, -1, -1, -1, -1
     try:
         sgpa_odd = re.findall("ODD\.*\s*\(.*\)[^0-9.]*([0-9.]+)", result_data)[0]
         odd_year = re.findall("ODD[^0-9]*([0-9])", result_data)[0]
         sgpa_even = re.findall("EVEN\s*\(.*\)[^0-9.]*([0-9.]+)", result_data)[0]
         even_year = re.findall("EVEN[^0-9]*([0-9])", result_data)[0]
         ygpa = re.findall("YGPA[^0-9]*([0-9.]+)", result_data)[0]
+        cgpa = re.findall("DGPA[^EVEN]*EVEN\s*\(.*\)[^0-9.]*[0-9.]+\s*([0-9.]+)[^YGPA]*YGPA", result_data)[0]
 
     except IndexError:
         pass
@@ -84,7 +83,8 @@ def get_marks_of(rollNo, semester):
         'odd_year': odd_year,
         'sgpa_even': None if sgpa_even == -1 else sgpa_even,
         'even_year': None if even_year == -1 else even_year,
-        'ygpa': None if ygpa == -1 else ygpa
+        'ygpa': None if ygpa == -1 else ygpa,
+        'cgpa': None if cgpa == -1 else cgpa
     }
 
 college_code = int(input("? College Code: "))
@@ -199,6 +199,9 @@ curr.execute('''CREATE TABLE IF NOT EXISTS "subject_data" (
 	"credit_points"	TEXT
 );''')
 
+change_count = 0
+time_taken = time()
+
 for stream_name , stream_num in streams:
     print(f"\n[i] Trying {stream_name} peeps!")
     
@@ -227,6 +230,7 @@ for stream_name , stream_num in streams:
                     # Data already not present
                     curr.execute('''INSERT INTO basic_data(roll_no, reg_no, name, stream, batch) VALUES (?, ?, ?, ?, ?);''', 
                         (data['roll'], data['reg_num'], data['name'], data['stream'], data['batch']))
+                    change_count += 1
 
                 # Update GPA
                 res = list(curr.execute("SELECT * FROM gpa_data WHERE roll=?", (complete_roll,)))
@@ -239,6 +243,8 @@ for stream_name , stream_num in streams:
                     
                     if data['ygpa'] is not None:
                         curr.execute(f'''UPDATE gpa_data SET ygpa_{sm_no // 2} = ? WHERE roll = ?''', (data['ygpa'], data['roll']))
+                    
+                    change_count += 1
 
                 else:
                     # Update
@@ -249,6 +255,8 @@ for stream_name , stream_num in streams:
                     
                     if data['ygpa'] is not None:
                         curr.execute(f'''UPDATE gpa_data SET ygpa_{sm_no // 2} = ? WHERE roll = ?''', (data['ygpa'], data['roll']))
+                    
+                    change_count += 1
 
                 
                 # Update subject data
@@ -258,9 +266,13 @@ for stream_name , stream_num in streams:
                     if len(res) == 0:
                         curr.execute('''INSERT INTO subject_data(roll, which_sem, paper_code, paper_name, grade, points, credit, credit_points) VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
                             (data['roll'], data['even_year' if sem==0 else 'odd_year'], sub_data[0], sub_data[1], sub_data[2], sub_data[3], sub_data[4], sub_data[5]))
+                        
+                        change_count += 1
 
     db.commit()
     sleep(10)
 
 db.commit()
 db.close()
+
+print(f"[$] {change_count} rows updated in {time() - time_taken}s.")

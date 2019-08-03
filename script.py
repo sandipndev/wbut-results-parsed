@@ -51,8 +51,8 @@ def get_marks_of(rollNo, semester):
         result_data = result_data.get_text()
     except AttributeError:
         # This result has not yet been published
-        print("<TBD>")
         return
+    
 
     # Basic Data
     name = re.findall("Name[^a-zA-Z]*([a-zA-Z ]+)", result_data)[0]
@@ -69,13 +69,14 @@ def get_marks_of(rollNo, semester):
     subject_data = get_subject_data(result_data)
 
     # SGPA YGPA MAR - Prone to errors for odd and even sem
-    sgpa_odd, odd_year, sgpa_even, even_year, ygpa = -1, -1, -1, -1, -1
+    sgpa_odd, odd_year, sgpa_even, even_year, ygpa, cgpa = -1, -1, -1, -1, -1, -1
     try:
         sgpa_odd = re.findall("ODD\.*\s*\(.*\)[^0-9.]*([0-9.]+)", result_data)[0]
         odd_year = re.findall("ODD[^0-9]*([0-9])", result_data)[0]
         sgpa_even = re.findall("EVEN\s*\(.*\)[^0-9.]*([0-9.]+)", result_data)[0]
         even_year = re.findall("EVEN[^0-9]*([0-9])", result_data)[0]
         ygpa = re.findall("YGPA[^0-9]*([0-9.]+)", result_data)[0]
+        cgpa = re.findall("DGPA[^EVEN]*EVEN\s*\(.*\)[^0-9.]*[0-9.]+\s*([0-9.]+)[^YGPA]*YGPA", result_data)[0]
 
     except IndexError:
         pass
@@ -91,18 +92,20 @@ def get_marks_of(rollNo, semester):
         'odd_year': odd_year,
         'sgpa_even': None if sgpa_even == -1 else sgpa_even,
         'even_year': None if even_year == -1 else even_year,
-        'ygpa': None if ygpa == -1 else ygpa
+        'ygpa': None if ygpa == -1 else ygpa,
+        'cgpa': None if cgpa == -1 else cgpa
     }
 
 def print_marks_properly(roll, sem):
     data = get_marks_of(roll, sem)
-    for key, value in data.items():
-        if key == 'marks_per_subject':
-            print(key,"->")
-            for x in value:
-                print(x)
-        else:
-            print(key, "->", value)
+    if data != "<TBD>":
+        for key, value in data.items():
+            if key == 'marks_per_subject':
+                print(key,"->")
+                for x in value:
+                    print(x)
+            else:
+                print(key, "->", value)
 
 if verbose == 1:
     # Disply most recent
